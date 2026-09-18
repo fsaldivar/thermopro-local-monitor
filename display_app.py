@@ -156,8 +156,10 @@ def vista_ahora(datos) -> Image.Image:
                    str(ultima["rssi"]) if ultima["rssi"] is not None else "",
                    "senal", ROJO if vieja else TENUE)
 
-    cx = cy = W / 2
-    r, grosor = 98, 13
+    # El centro va desplazado hacia abajo y el radio reducido: a media escala
+    # el marcador queda en lo alto del arco y se comia la cabecera.
+    cx, cy = W / 2, W / 2 + 6
+    r, grosor = 86, 13
     ini, barrido = 135, 270
     l.arco(cx, cy, r, ini, ini + barrido, PISTA, grosor)
 

@@ -1,4 +1,4 @@
-# ThermoPro BLE Monitor
+# ThermoPro Local Monitor
 
 Lee temperatura y humedad de un termómetro **ThermoPro TP357 / TP358 / TP359**,
 las guarda en SQLite y las muestra en la pantalla LCD del propio Raspberry Pi.
@@ -6,21 +6,18 @@ las guarda en SQLite y las muestra en la pantalla LCD del propio Raspberry Pi.
 **Todo ocurre en la Raspberry.** No hay nube, no hay broker externo, no sale
 ni un byte a internet.
 
+![Las tres vistas del panel](docs/vistas.png)
+
 Verificado sobre hardware real: **TP359S** (`FB:E7:C4:CF:3A:F6`) + Raspberry Pi
 3 Model B + **Waveshare 1.3inch LCD HAT** (ST7789 240×240), con BlueZ 5.82,
 bleak 3.0.2 y Python 3.13.
 
 ## Cómo está montado
 
-```
-   sensor BLE  ──anuncios──▶  thermopro-recorder  ──▶  thermopro.db (SQLite)
-                                                            │
-                                                            ├──▶ thermopro-display  ──▶ LCD
-                                                            └──▶ consultas / export
-```
+![Arquitectura](docs/arquitectura.svg)
 
-Dos servicios independientes: el panel lee la base en **solo lectura**, así que
-si la pantalla falla el registro sigue intacto.
+Servicios independientes: el panel lee la base en **solo lectura**, así que si
+la pantalla falla el registro sigue intacto.
 
 ## Por qué no se conecta al sensor
 
@@ -153,12 +150,21 @@ inventárselo.
 
 Tres vistas, se cambia con **KEY1** o el joystick izquierda/derecha:
 
-1. **Ahora** — temperatura grande, humedad y **antigüedad del dato**. Si pasan
-   más de 10 minutos sin lectura, el número se apaga a gris y la antigüedad se
-   pone en rojo: un valor congelado no debe parecer actual.
-2. **Histórico** — gráfica con mínima y máxima. **KEY3** cambia el rango
-   (3 h / 12 h / 24 h / 3 días).
-3. **Sistema** — IP, temperatura de CPU, uptime y número de lecturas.
+| <img src="docs/vista-ahora.png" width="230"> | <img src="docs/vista-historico.png" width="230"> | <img src="docs/vista-sistema.png" width="230"> |
+| :--: | :--: | :--: |
+| **Ahora** | **Histórico** | **Sistema** |
+| Medidor circular, humedad y **antigüedad del dato** | Serie con mínima, media y máxima | IP, CPU, uptime y lecturas |
+
+1. **Ahora** — si pasan más de 10 minutos sin lectura, el arco se apaga a gris
+   y la antigüedad se pone en rojo: un valor congelado no debe parecer actual.
+2. **Histórico** — **KEY3** cambia el rango (3 h / 12 h / 24 h / 3 días).
+3. **Sistema** — útil para averiguar la IP cuando la Raspberry cambia de red.
+
+El estilo vive en `ui.py`: todo se dibuja a **3× y se reduce con LANCZOS**,
+porque PIL no suaviza bordes y sin eso los arcos salen dentados. Cuesta 116 ms
+por fotograma en un Pi 3, frente a los 2 s de refresco. Los iconos son glifos
+de **Font Awesome** y la tipografía es **Inter**, ambos desde paquetes de apt:
+ni una descarga.
 
 **KEY2** apaga y enciende la retroiluminación.
 
@@ -245,6 +251,15 @@ Probado cortando el servicio de Bluetooth en caliente:
 - Si pasan `--restart-after` segundos (90) sin **ningún** anuncio, se reinicia
   el escaneo: BlueZ se queda mudo de vez en cuando.
 - El escaneo reintenta indefinidamente con espera creciente hasta 60 s.
+
+## Regenerar las capturas
+
+Las imágenes del README salen de las mismas funciones que dibujan en la
+pantalla, con una base de datos de ejemplo para que siempre salgan iguales:
+
+```bash
+python3 docs/generar_capturas.py
+```
 
 ## Tests
 

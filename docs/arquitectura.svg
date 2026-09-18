@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 330" width="900" height="330" role="img" aria-label="Arquitectura: el sensor BLE alimenta al grabador, que escribe en SQLite; de ahi leen el panel LCD y Grafana. Todo ocurre dentro de la Raspberry Pi.">
+  <defs>
+    <style>
+      .t  { font-family: Inter, "Segoe UI", system-ui, sans-serif; }
+      .tit{ font-size: 15px; font-weight: 600; fill: #eef1f6; }
+      .sub{ font-size: 11.5px; fill: #8b93a5; }
+      .lbl{ font-size: 11px; fill: #6c7484; }
+      .cap{ font-size: 12px; font-weight: 600; fill: #6c7484; letter-spacing: .08em; }
+    </style>
+    <marker id="f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4e576b"/>
+    </marker>
+  </defs>
+
+  <rect width="900" height="330" rx="14" fill="#0d0f14"/>
+
+  <!-- limite fisico: nada cruza esta linea -->
+  <rect x="16" y="16" width="868" height="298" rx="12" fill="none"
+        stroke="#2b3243" stroke-width="1.5" stroke-dasharray="7 6"/>
+  <text x="34" y="40" class="t cap">RASPBERRY PI · TODO LOCAL</text>
+
+  <!-- fila 1 -->
+  <rect x="34"  y="66" width="176" height="70" rx="10" fill="#1a1e28" stroke="#2b3243"/>
+  <text x="122" y="95"  class="t tit" text-anchor="middle">ThermoPro TP359S</text>
+  <text x="122" y="115" class="t sub" text-anchor="middle">anuncia cada 1,5–3 s</text>
+
+  <rect x="300" y="66" width="200" height="70" rx="10" fill="#1a1e28" stroke="#2b3243"/>
+  <text x="400" y="95"  class="t tit" text-anchor="middle">thermopro-recorder</text>
+  <text x="400" y="115" class="t sub" text-anchor="middle">decodifica y valida</text>
+
+  <rect x="596" y="66" width="270" height="70" rx="10" fill="#1a1e28" stroke="#3d4557"/>
+  <text x="731" y="95"  class="t tit" text-anchor="middle">SQLite · modo WAL</text>
+  <text x="731" y="115" class="t sub" text-anchor="middle">/var/lib/thermopro/thermopro.db</text>
+
+  <line x1="214" y1="101" x2="292" y2="101" stroke="#4e576b" stroke-width="1.6" marker-end="url(#f)"/>
+  <text x="253" y="92" class="t lbl" text-anchor="middle">BLE</text>
+  <line x1="504" y1="101" x2="588" y2="101" stroke="#4e576b" stroke-width="1.6" marker-end="url(#f)"/>
+  <text x="546" y="92" class="t lbl" text-anchor="middle">1/min</text>
+
+  <!-- reparto hacia los dos consumidores -->
+  <path d="M731 140 L731 166 L300 166 L300 196" fill="none" stroke="#4e576b" stroke-width="1.6" marker-end="url(#f)"/>
+  <path d="M731 140 L731 166 L666 166 L666 196" fill="none" stroke="#4e576b" stroke-width="1.6" marker-end="url(#f)"/>
+
+  <rect x="190" y="200" width="220" height="70" rx="10" fill="#1a1e28" stroke="#2b3243"/>
+  <text x="300" y="229" class="t tit" text-anchor="middle">thermopro-display</text>
+  <text x="300" y="249" class="t sub" text-anchor="middle">solo lectura</text>
+
+  <rect x="556" y="200" width="220" height="70" rx="10" fill="#1a1e28" stroke="#2b3243"/>
+  <text x="666" y="229" class="t tit" text-anchor="middle">grafana-server</text>
+  <text x="666" y="249" class="t sub" text-anchor="middle">opcional</text>
+
+  <text x="300" y="292" class="t lbl" text-anchor="middle">LCD ST7789 · 240×240</text>
+  <text x="666" y="292" class="t lbl" text-anchor="middle">navegador · :3000</text>
+</svg>
