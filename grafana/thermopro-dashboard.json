@@ -275,7 +275,7 @@
       }
     },
     {
-      "type": "stat",
+      "type": "canvas",
       "title": "Batería",
       "datasource": {
         "type": "frser-sqlite-datasource",
@@ -294,56 +294,87 @@
             "type": "frser-sqlite-datasource",
             "uid": "thermopro-sqlite"
           },
-          "queryText": "SELECT battery FROM readings WHERE battery IS NOT NULL ORDER BY ts DESC LIMIT 1",
-          "rawQueryText": "SELECT battery FROM readings WHERE battery IS NOT NULL ORDER BY ts DESC LIMIT 1",
-          "timeColumns": [
-            "time"
-          ],
+          "queryText": "SELECT battery, CASE WHEN battery >= 50 THEN 'img/icons/unicons/battery-bolt.svg' ELSE 'img/icons/unicons/battery-empty.svg' END AS icono FROM readings WHERE battery IS NOT NULL ORDER BY ts DESC LIMIT 1",
+          "rawQueryText": "SELECT battery, CASE WHEN battery >= 50 THEN 'img/icons/unicons/battery-bolt.svg' ELSE 'img/icons/unicons/battery-empty.svg' END AS icono FROM readings WHERE battery IS NOT NULL ORDER BY ts DESC LIMIT 1",
+          "timeColumns": [],
           "queryType": "table",
           "format": "table"
         }
       ],
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "value",
-        "graphMode": "none",
-        "colorMode": "value",
-        "justifyMode": "center"
+        "inlineEditing": false,
+        "showAdvancedTypes": true,
+        "panZoom": false,
+        "infinitePan": false,
+        "root": {
+          "type": "frame",
+          "name": "Element 1",
+          "constraint": {
+            "horizontal": "left",
+            "vertical": "top"
+          },
+          "placement": {
+            "top": 0,
+            "left": 0,
+            "width": 100,
+            "height": 100
+          },
+          "background": {
+            "color": {
+              "fixed": "transparent"
+            }
+          },
+          "border": {
+            "color": {
+              "fixed": "transparent"
+            }
+          },
+          "elements": [
+            {
+              "type": "icon",
+              "name": "bateria",
+              "config": {
+                "path": {
+                  "mode": "field",
+                  "field": "icono",
+                  "fixed": "img/icons/unicons/battery-bolt.svg"
+                },
+                "fill": {
+                  "field": "battery",
+                  "fixed": "#8ab8ff"
+                }
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "constraint": {
+                "horizontal": "center",
+                "vertical": "center"
+              },
+              "placement": {
+                "top": 0,
+                "left": 0,
+                "width": 74,
+                "height": 74,
+                "rotation": 0
+              },
+              "links": []
+            }
+          ]
+        }
       },
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "1": {
-                  "text": "Crítica",
-                  "color": "red",
-                  "index": 0
-                },
-                "50": {
-                  "text": "Media",
-                  "color": "orange",
-                  "index": 1
-                },
-                "100": {
-                  "text": "Llena",
-                  "color": "green",
-                  "index": 2
-                }
-              }
-            }
-          ],
-          "noValue": "sin dato",
           "thresholds": {
             "mode": "absolute",
             "steps": [

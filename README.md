@@ -232,9 +232,15 @@ El dashboard queda en `http://<ip>:3000/d/thermopro`: cinco indicadores
 —temperatura, humedad, mínima y máxima del rango, y batería— y tres series con
 temperatura, humedad y señal.
 
-La batería se muestra como **texto y color** (Crítica / Media / Llena) mediante
-un *value mapping*, no como número: el sensor solo reporta tres estados, y
-enseñar «50» daría a entender un porcentaje que no existe.
+La batería usa un panel **Canvas** con icono, no un número: el sensor solo
+reporta tres estados y enseñar «50» daría a entender un porcentaje que no
+existe. El icono lo elige la propia consulta (`battery-bolt` o `battery-empty`,
+ambos incluidos en Grafana) y el color sale del umbral: verde, ámbar o rojo.
+
+Canvas viene de serie, así que no hace falta instalar plugins. Los de SVG a
+medida (`snuids-svg-panel`, `aceiot-svg-panel`, `gapit-htmlgraphics-panel`)
+permitirían dibujar los tres niveles de relleno reales; son solo JavaScript del
+navegador y no levantan procesos, pero aquí no compensan una dependencia más.
 
 Dos trampas del plugin, las dos cuestan un rato:
 
