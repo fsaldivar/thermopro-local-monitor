@@ -88,7 +88,13 @@ el usuario `grafana` no puede atravesarlo. Además **SQLite en modo WAL no
 admite lectores de solo lectura**: necesitan escribir `-shm` y `-wal`. De ahí
 el grupo `thermopro`, al que pertenecen `fermax` y `grafana`.
 
-**6. `pkill -f` por SSH se mata a sí mismo**: el patrón coincide con la línea
+**6. El swap es zram, comprimido en la propia RAM.** Un proceso sin límite
+—Grafana— puede dejar la máquina sin poder hacer `fork`: responde a ping y
+acepta TCP, pero corta cada sesión SSH en el saludo. No está colgada, está
+asfixiada. Por eso `grafana-server` lleva `MemoryMax=400M` y `sshd` lleva
+`OOMScoreAdjust=-900`. No quites esos límites.
+
+**7. `pkill -f` por SSH se mata a sí mismo**: el patrón coincide con la línea
 de comandos del propio shell remoto. Usa systemd o filtra el PID.
 
 ## Comandos

@@ -14,6 +14,8 @@ WorkingDirectory=/home/fermax/thermopro-local-monitor
 ExecStart=/home/fermax/thermopro-local-monitor/.venv/bin/python thermopro_monitor.py record --db /var/lib/thermopro/thermopro.db --interval 60
 Restart=always
 RestartSec=10
+# Es el que recoge los datos: que sea de los ultimos en caer.
+OOMScoreAdjust=-500
 
 [Install]
 WantedBy=multi-user.target

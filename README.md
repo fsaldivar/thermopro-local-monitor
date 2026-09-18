@@ -202,8 +202,14 @@ sudo cp grafana/datasource.yaml  /etc/grafana/provisioning/datasources/thermopro
 sudo cp grafana/dashboards.yaml  /etc/grafana/provisioning/dashboards/thermopro.yaml
 sudo install -d -o grafana -g grafana /var/lib/grafana/dashboards
 sudo install -o grafana -g grafana grafana/thermopro-dashboard.json /var/lib/grafana/dashboards/
+sudo cp grafana/grafana-memoria.conf /etc/systemd/system/grafana-server.service.d/memoria.conf
+sudo systemctl daemon-reload
 sudo systemctl enable --now grafana-server
 ```
+
+**Pon el límite de memoria antes de arrancarlo.** En un Pi 3 con el swap en
+zram, Grafana sin tope llega a dejar la máquina sin poder hacer `fork`: responde
+a ping y acepta TCP, pero mata cada sesión SSH nueva al instante. Ver más abajo.
 
 El dashboard queda en `http://<ip>:3000/d/thermopro`.
 
@@ -288,6 +294,29 @@ que SPI esté activo (`ls /dev/spidev*`).
 
 **La imagen sale corrida o con una franja.** Es el desplazamiento de 80 píxeles
 de las rotaciones 180 y 270.
+
+**La Raspberry responde a ping pero no deja entrar por SSH.** Acepta la
+conexión TCP y la corta en el saludo (`kex_exchange_identification: Connection
+reset by peer`). No está colgada: se ha quedado sin memoria para crear procesos
+nuevos.
+
+El swap está en **zram**, comprimido dentro de la propia RAM. Cuando un proceso
+crece, el kernel comprime páginas que **siguen ocupando esa misma memoria**:
+cuanto más swapea, menos queda libre, y más necesita swapear. Grafana sin
+límite es el candidato habitual.
+
+Se evita acotándolo y protegiendo el acceso remoto:
+
+```bash
+sudo cp grafana/grafana-memoria.conf /etc/systemd/system/grafana-server.service.d/memoria.conf
+sudo mkdir -p /etc/systemd/system/ssh.service.d
+sudo cp grafana/ssh-memoria.conf /etc/systemd/system/ssh.service.d/memoria.conf
+sudo systemctl daemon-reload && sudo systemctl restart grafana-server ssh
+```
+
+Conviene también dejar el journal persistente (`Storage=persistent` en
+`/etc/systemd/journald.conf`), o al reiniciar se pierde la prueba de lo que
+pasó y hay que diagnosticar a ciegas.
 
 **`--passive` falla.** El escaneo pasivo necesita `bluetoothd --experimental`
 (BlueZ ≥ 5.56, kernel ≥ 5.10). No evita que BlueZ acumule ids rancios; la purga

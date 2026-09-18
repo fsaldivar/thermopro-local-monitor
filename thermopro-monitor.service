@@ -14,6 +14,8 @@ EnvironmentFile=/home/fermax/thermopro-local-monitor/.env
 ExecStart=/home/fermax/thermopro-local-monitor/.venv/bin/python thermopro_monitor.py mqtt
 Restart=always
 RestartSec=10
+# Es el que recoge los datos: que sea de los ultimos en caer.
+OOMScoreAdjust=-500
 
 [Install]
 WantedBy=multi-user.target

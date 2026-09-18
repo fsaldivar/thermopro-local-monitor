@@ -15,6 +15,8 @@ WorkingDirectory=/home/fermax/thermopro-local-monitor
 ExecStart=/usr/bin/python3 display_app.py --db /var/lib/thermopro/thermopro.db --rotation 270
 Restart=always
 RestartSec=10
+# Sin panel la Raspberry se queda muda de cara al usuario.
+OOMScoreAdjust=-300
 
 [Install]
 WantedBy=multi-user.target
