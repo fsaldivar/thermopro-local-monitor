@@ -53,6 +53,18 @@ itheres el dict de manufacturer_data cogiendo el primero o el último.**
 (verificado byte a byte). Conectarse gasta batería del sensor, ocupa su única
 ranura de conexión y bloquea la app móvil.
 
+**3-bis. El estilo del panel vive en `ui.py`**, no repartido por las vistas.
+Todo se dibuja a **3× y se reduce con LANCZOS** (`Lienzo.terminar()`): PIL no
+suaviza bordes, y sin eso los arcos y diagonales salen dentados. Medido en el
+Pi 3: 116 ms por fotograma a 3×, 14 % de un núcleo en marcha. Las coordenadas
+de las vistas van en el espacio lógico de 240×240; `Lienzo.p()` las escala.
+
+Los iconos son glifos de **Font Awesome 4.7**, que viene en el paquete apt
+`fonts-font-awesome` — sin descargas, coherente con la regla de todo local.
+Los codepoints están en `ui.ICO`. La tipografía es **Inter** (`fonts-inter`),
+con `InterDisplay` para las cifras grandes. Si añades tamaños nuevos, mételos
+en `ui.precargar()`: cargar una fuente la primera vez cuesta casi un segundo.
+
 **3. El ST7789 necesita inversión (`0x21`)** o los colores salen en negativo.
 Y su RAM es 240×**320** sobre un panel de 240×240, así que las rotaciones que
 invierten un eje necesitan **desplazar 80 píxeles** (tabla `ROTATIONS` en
