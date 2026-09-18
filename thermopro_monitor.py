@@ -60,16 +60,31 @@ GATT_CHAR_UUID = "00010203-0405-0607-0809-0a0b0c0d2b10"
 TEMP_MIN_C, TEMP_MAX_C = -40.0, 80.0
 HUM_MIN, HUM_MAX = 0, 100
 
+# Nivel de bateria: los dos bits bajos del byte 4. No es un porcentaje, son
+# tres estados. La correspondencia viene de la libreria thermopro-ble, cuyo
+# autor la verifico con un TP357S alimentado desde una fuente de laboratorio.
+# https://github.com/Bluetooth-Devices/thermopro-ble
+NIVELES_BATERIA = {0: 1, 1: 50, 2: 100}
+
+# El sensor emite de vez en cuando una trama invalida con la temperatura y la
+# humedad a 0xff. Hay que descartarla o se cuela como lectura real.
+TRAMA_INVALIDA = b"\xff\xff\xff"
+
 
 @dataclass(frozen=True, order=True)
 class Measurement:
-    """Un par temperatura/humedad ya validado."""
+    """Temperatura, humedad y nivel de bateria ya validados.
+
+    `battery` solo viene en los anuncios: la notificacion GATT usa otra
+    cabecera y no lo lleva.
+    """
 
     temperature_c: float
     humidity: int
+    battery: int | None = None
 
 
-def _build(temp_tenths: int, humidity: int) -> Measurement | None:
+def _build(temp_tenths: int, humidity: int, battery: int | None = None) -> Measurement | None:
     """Valida el rango antes de aceptar una trama.
 
     Sin esto, cualquier anuncio ajeno que case en longitud se publica como una
@@ -80,7 +95,7 @@ def _build(temp_tenths: int, humidity: int) -> Measurement | None:
         return None
     if not HUM_MIN <= humidity <= HUM_MAX:
         return None
-    return Measurement(round(temperature_c, 1), humidity)
+    return Measurement(round(temperature_c, 1), humidity, battery)
 
 
 def decode_advertisement_frame(company_id: int, payload: bytes) -> Measurement | None:
@@ -90,7 +105,10 @@ def decode_advertisement_frame(company_id: int, payload: bytes) -> Measurement |
     raw = company_id.to_bytes(2, "little") + bytes(payload)
     if len(raw) != FRAME_LEN or raw[0] != FRAME_PREFIX:
         return None
-    return _build(*struct.unpack_from("<hB", raw, 1))
+    if raw[1:4] == TRAMA_INVALIDA:
+        return None
+    return _build(*struct.unpack_from("<hB", raw, 1),
+                  battery=NIVELES_BATERIA.get(raw[4] & 3))
 
 
 def decode_gatt_frame(payload: bytes) -> Measurement | None:
@@ -138,6 +156,10 @@ class Reading:
     def humidity(self) -> int:
         return self.measurement.humidity
 
+    @property
+    def battery(self) -> int | None:
+        return self.measurement.battery
+
     def payload(self) -> dict:
         return {
             "timestamp": self.timestamp.isoformat(),
@@ -145,6 +167,7 @@ class Reading:
             "name": self.name,
             "temperature_c": self.temperature_c,
             "humidity": self.humidity,
+            "battery": self.battery,
             "rssi": self.rssi,
             "source": self.source,
         }
@@ -314,7 +337,8 @@ class ThermoProListener:
             return
         if len(found) > 1:
             # Anuncio contaminado con un valor viejo: descartar y purgar.
-            log.debug("anuncio ambiguo de %s: %s", address, sorted(found))
+            log.debug("anuncio ambiguo de %s: %s", address,
+                      sorted(found, key=lambda m: (m.temperature_c, m.humidity)))
             self._ambiguous.add(address)
             return
 
@@ -438,6 +462,7 @@ class SqliteStore:
             temperature_c REAL NOT NULL,
             humidity      INTEGER NOT NULL,
             rssi          INTEGER,
+            battery       INTEGER,
             PRIMARY KEY (device_id, ts)
         ) WITHOUT ROWID
         """,
@@ -445,7 +470,7 @@ class SqliteStore:
         """
         CREATE VIEW IF NOT EXISTS readings_local AS
         SELECT datetime(r.ts, 'unixepoch', 'localtime') AS hora,
-               d.name, r.temperature_c, r.humidity, r.rssi
+               d.name, r.temperature_c, r.humidity, r.battery, r.rssi
         FROM readings r JOIN devices d USING (device_id)
         ORDER BY r.ts DESC
         """,
@@ -463,8 +488,24 @@ class SqliteStore:
         self._db.execute("PRAGMA synchronous=NORMAL")
         for statement in self.SCHEMA:
             self._db.execute(statement)
+        self._migrar()
         self._db.commit()
         log.info("base de datos: %s", self._path)
+
+    def _migrar(self) -> None:
+        """Anade columnas nuevas a una base ya existente.
+
+        Las filas viejas quedan con la columna a NULL, que es lo honesto: en
+        su momento no se leyo ese dato.
+        """
+        columnas = {fila[1] for fila in self._db.execute("PRAGMA table_info(readings)")}
+        if "battery" not in columnas:
+            log.info("migrando la base: anadiendo la columna battery")
+            self._db.execute("ALTER TABLE readings ADD COLUMN battery INTEGER")
+            self._db.execute("DROP VIEW IF EXISTS readings_local")
+            for statement in self.SCHEMA:
+                if "CREATE VIEW" in statement:
+                    self._db.execute(statement)
 
     def close(self) -> None:
         if self._db is not None:
@@ -489,10 +530,11 @@ class SqliteStore:
         self._db.execute(
             """
             INSERT OR REPLACE INTO readings
-                (ts, device_id, temperature_c, humidity, rssi)
-            VALUES (?, ?, ?, ?, ?)
+                (ts, device_id, temperature_c, humidity, rssi, battery)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (ts, reading.device_id, reading.temperature_c, reading.humidity, reading.rssi),
+            (ts, reading.device_id, reading.temperature_c, reading.humidity,
+             reading.rssi, reading.battery),
         )
         self._db.commit()
 
@@ -789,10 +831,11 @@ async def cmd_record(args) -> int:
                     continue
                 gate.mark(reading)
                 log.info(
-                    "%s  %.1f C  %d %%  rssi=%s  -> guardado",
+                    "%s  %.1f C  %d %%  bat=%s  rssi=%s  -> guardado",
                     reading.name or reading.address,
                     reading.temperature_c,
                     reading.humidity,
+                    f"{reading.battery}%" if reading.battery is not None else "?",
                     reading.rssi,
                 )
     finally:

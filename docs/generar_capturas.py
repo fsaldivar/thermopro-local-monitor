@@ -41,7 +41,8 @@ def datos_de_ejemplo(ruta: str) -> str:
         CREATE TABLE devices (device_id TEXT PRIMARY KEY, address TEXT, name TEXT,
                               first_seen INTEGER, last_seen INTEGER);
         CREATE TABLE readings (ts INTEGER, device_id TEXT, temperature_c REAL,
-                               humidity INTEGER, rssi INTEGER, PRIMARY KEY (device_id, ts));
+                               humidity INTEGER, rssi INTEGER, battery INTEGER,
+                               PRIMARY KEY (device_id, ts));
     """)
     ahora = int(time.time())
     db.execute("INSERT INTO devices VALUES (?,?,?,?,?)",
@@ -50,8 +51,9 @@ def datos_de_ejemplo(ruta: str) -> str:
         ts = ahora - (240 - i) * 360
         t = 22.5 + math.sin(i / 26) * 3.4 + random.uniform(-0.25, 0.25)
         h = int(48 + math.cos(i / 31) * 7 + random.uniform(-1, 1))
-        db.execute("INSERT INTO readings VALUES (?,?,?,?,?)",
-                   (ts, "fbe7c4cf3af6", round(t, 1), h, -62 - int(random.uniform(0, 12))))
+        db.execute("INSERT INTO readings VALUES (?,?,?,?,?,?)",
+                   (ts, "fbe7c4cf3af6", round(t, 1), h,
+                    -62 - int(random.uniform(0, 12)), 100))
     db.commit()
     db.close()
     return ruta

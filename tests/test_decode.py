@@ -19,24 +19,24 @@ class TestAdvertisementFrames(unittest.TestCase):
         # c2 39 01 2f 22 13 01  y  c2 3a 01 2f 22 13 01
         self.assertEqual(
             decode_advertisement_frame(0x39C2, bytes.fromhex("012f221301")),
-            Measurement(31.3, 47),
+            Measurement(31.3, 47, 100),
         )
         self.assertEqual(
             decode_advertisement_frame(0x3AC2, bytes.fromhex("012f221301")),
-            Measurement(31.4, 47),
+            Measurement(31.4, 47, 100),
         )
 
     def test_humidity_comes_from_payload(self):
         self.assertEqual(
             decode_advertisement_frame(0x39C2, bytes.fromhex("012e221301")),
-            Measurement(31.3, 46),
+            Measurement(31.3, 46, 100),
         )
 
     def test_negative_temperature(self):
         # -5.0 C = -50 decimas = 0xffce little endian -> c2 ce ff ...
         self.assertEqual(
             decode_advertisement_frame(0xCEC2, bytes.fromhex("ff30221301")),
-            Measurement(-5.0, 48),
+            Measurement(-5.0, 48, 100),
         )
 
     def test_rejects_wrong_prefix(self):
@@ -53,6 +53,33 @@ class TestAdvertisementFrames(unittest.TestCase):
         self.assertIsNone(decode_advertisement_frame(0x0FC2, bytes.fromhex("272f221301")))
 
 
+class TestBateria(unittest.TestCase):
+    """Nivel de bateria: los dos bits bajos del byte 4, tres estados."""
+
+    def test_tres_niveles(self):
+        # 0x20&3=0 -> critico, 0x21&3=1 -> medio, 0x22&3=2 -> llena
+        for byte4, esperado in ((0x20, 1), (0x21, 50), (0x22, 100), (0x24, 1)):
+            trama = bytes([0x01, 0x2F, byte4, 0x13, 0x01])
+            self.assertEqual(
+                decode_advertisement_frame(0x39C2, trama).battery, esperado,
+                f"byte4=0x{byte4:02x}",
+            )
+
+    def test_nivel_critico(self):
+        # 0x20 & 3 == 0 -> el mapa devuelve 1 %
+        trama = bytes([0x01, 0x2F, 0x20, 0x13, 0x01])
+        self.assertEqual(decode_advertisement_frame(0x39C2, trama).battery, 1)
+
+    def test_valor_desconocido_queda_en_none(self):
+        # 0x23 & 3 == 3, que no esta en la tabla
+        trama = bytes([0x01, 0x2F, 0x23, 0x13, 0x01])
+        self.assertIsNone(decode_advertisement_frame(0x39C2, trama).battery)
+
+    def test_trama_invalida_se_descarta(self):
+        # El sensor emite de vez en cuando temperatura y humedad a 0xff
+        self.assertIsNone(decode_advertisement_frame(0xFFC2, bytes.fromhex("ffff221301")))
+
+
 class TestGattFrames(unittest.TestCase):
     def test_captured_frames(self):
         # c2 00 00 39 01 2f 2c
@@ -66,10 +93,15 @@ class TestGattFrames(unittest.TestCase):
         )
 
     def test_advertisement_and_gatt_agree(self):
+        # La notificacion GATT usa otra cabecera y no lleva bateria, asi que
+        # solo se comparan temperatura y humedad.
+        anuncio = decode_advertisement_frame(0x39C2, bytes.fromhex("012f221301"))
+        gatt = decode_gatt_frame(bytes.fromhex("c2000039012f2c"))
         self.assertEqual(
-            decode_advertisement_frame(0x39C2, bytes.fromhex("012f221301")),
-            decode_gatt_frame(bytes.fromhex("c2000039012f2c")),
+            (anuncio.temperature_c, anuncio.humidity),
+            (gatt.temperature_c, gatt.humidity),
         )
+        self.assertIsNone(gatt.battery)
 
     def test_rejects_garbage(self):
         self.assertIsNone(decode_gatt_frame(b""))
@@ -79,7 +111,7 @@ class TestGattFrames(unittest.TestCase):
 class TestAmbiguousAdvertisements(unittest.TestCase):
     def test_single_entry(self):
         found = measurements_in_advertisement({0x39C2: bytes.fromhex("012f221301")})
-        self.assertEqual(found, {Measurement(31.3, 47)})
+        self.assertEqual(found, {Measurement(31.3, 47, 100)})
 
     def test_stale_company_id_is_detected(self):
         # Lo que entrega BlueZ cuando conserva un id viejo: dos temperaturas.
@@ -99,7 +131,7 @@ class TestAmbiguousAdvertisements(unittest.TestCase):
                 0x004C: bytes.fromhex("012f221301"),  # no es ThermoPro, se ignora
             }
         )
-        self.assertEqual(found, {Measurement(31.3, 47)})
+        self.assertEqual(found, {Measurement(31.3, 47, 100)})
 
     def test_ignores_foreign_devices(self):
         found = measurements_in_advertisement(

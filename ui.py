@@ -33,6 +33,7 @@ ICO = {
     "termometro": "", "gota": "", "wifi": "", "reloj": "",
     "senal": "", "grafica": "", "engranaje": "", "aviso": "",
     "chip": "", "arriba": "", "abajo": "",
+    "bat_llena": "", "bat_media": "", "bat_vacia": "",
 }
 
 _cache: dict[tuple, ImageFont.FreeTypeFont] = {}

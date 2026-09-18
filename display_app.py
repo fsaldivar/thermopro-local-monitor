@@ -84,7 +84,7 @@ class Datos:
         try:
             row = self._db.execute(
                 """
-                SELECT r.ts, r.temperature_c, r.humidity, r.rssi, d.name
+                SELECT r.ts, r.temperature_c, r.humidity, r.rssi, d.name, r.battery
                 FROM readings r LEFT JOIN devices d USING (device_id)
                 ORDER BY r.ts DESC LIMIT 1
                 """
@@ -99,6 +99,7 @@ class Datos:
             "humedad": row[2],
             "rssi": row[3],
             "nombre": row[4],
+            "bateria": row[5],
         }
 
     def serie(self, horas: float) -> list[tuple[int, float]]:
@@ -132,6 +133,17 @@ class Datos:
 # --------------------------------------------------------------------------- #
 
 
+def icono_bateria(nivel: int | None):
+    """Glifo y color para los tres estados que reporta el sensor."""
+    if nivel is None:
+        return None, TENUE
+    if nivel >= 100:
+        return ICO["bat_llena"], TENUE
+    if nivel >= 50:
+        return ICO["bat_media"], ui.color_temp(28)
+    return ICO["bat_vacia"], ROJO
+
+
 def vista_sin_datos(datos) -> Image.Image:
     l = Lienzo()
     barra_superior(l, "aviso", "SIN DATOS")
@@ -155,6 +167,11 @@ def vista_ahora(datos) -> Image.Image:
     barra_superior(l, "termometro", (ultima["nombre"] or "SENSOR").upper(),
                    str(ultima["rssi"]) if ultima["rssi"] is not None else "",
                    "senal", ROJO if vieja else TENUE)
+
+    # Bateria: el sensor solo da tres estados, no un porcentaje.
+    glifo, color = icono_bateria(ultima.get("bateria"))
+    if glifo:
+        l.texto((W - 58, 15), glifo, icono(11), color, anchor="rm")
 
     # El centro va desplazado hacia abajo y el radio reducido: a media escala
     # el marcador queda en lo alto del arco y se comia la cabecera.
