@@ -131,9 +131,12 @@ Así se encontró un solape que a simple vista no se veía.
 
 ## Pendiente
 
-- **Batería**: el sensor no la expone por BLE (no hay Battery Service; leídas
-  todas las características). Los únicos candidatos son bytes sin identificar:
-  `22 13 01` en el anuncio y `2c` en la notificación. Plan: poner pilas nuevas
-  y comparar tramas antes/después.
+- ~~Batería~~ **resuelto sin el experimento**: no hay Battery Service, pero el
+  nivel va en los dos bits bajos del **byte 4** del anuncio (`data[4] & 3` →
+  `{0: crítica, 1: media, 2: llena}`). Son tres estados, no un porcentaje, y por
+  eso el byte parecía constante. Fuente:
+  [thermopro-ble](https://github.com/Bluetooth-Devices/thermopro-ble),
+  verificado por su autor con fuente de laboratorio y contrastado con este
+  sensor.
 - Confirmar si la imagen llena el panel o queda franja negra en algún borde.
 - Panel web propio como alternativa ligera a Grafana.

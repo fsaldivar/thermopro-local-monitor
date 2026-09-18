@@ -41,6 +41,23 @@ c2 39 01 2f 22 13 01                 c2 00 00 39 01 2f 2c
         -> 31.3 °C, 47 %                     -> 31.3 °C, 47 %
 ```
 
+El **byte 4** (`0x22`) lleva el nivel de batería en sus **dos bits bajos**:
+
+| `byte4 & 3` | Nivel |
+| :--: | --- |
+| `0` | crítica |
+| `1` | media |
+| `2` | llena |
+
+No es un porcentaje, son **tres estados**: por eso el byte parece constante
+durante meses. La correspondencia viene de
+[thermopro-ble](https://github.com/Bluetooth-Devices/thermopro-ble), cuyo autor
+la verificó con un TP357S alimentado desde una fuente de laboratorio. Los bytes
+restantes (`13 01` / `2c`) siguen sin identificar; se ignoran.
+
+El sensor emite además, de vez en cuando, una trama con temperatura y humedad a
+`0xff`. Hay que descartarla o se cuela como lectura real.
+
 ### La trampa: BlueZ acumula ids rancios
 
 BlueZ va sumando cada *company id* que ve y **no los caduca nunca**. Como el id
@@ -116,7 +133,7 @@ descubrimiento de Home Assistant. No hace falta para el uso local.
 
 ```sql
 devices  (device_id, address, name, first_seen, last_seen)
-readings (ts, device_id, temperature_c, humidity, rssi)   -- ts en epoch UTC
+readings (ts, device_id, temperature_c, humidity, rssi, battery)  -- epoch UTC
 ```
 
 Más una vista `readings_local` con la hora ya en local y legible:
