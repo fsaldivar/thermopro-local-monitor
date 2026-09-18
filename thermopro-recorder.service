@@ -1,0 +1,19 @@
+# Registro local: BLE -> SQLite. Nada sale de la Raspberry.
+# Instalar en /etc/systemd/system/thermopro-recorder.service
+[Unit]
+# Sin limite de reintentos: que insista indefinidamente.
+StartLimitIntervalSec=0
+Description=ThermoPro BLE recorder (SQLite local)
+After=bluetooth.target
+Wants=bluetooth.target
+
+[Service]
+Type=simple
+User=fermax
+WorkingDirectory=/home/fermax/thermopro-ble-monitor
+ExecStart=/home/fermax/thermopro-ble-monitor/.venv/bin/python thermopro_monitor.py record --db /home/fermax/thermopro-ble-monitor/thermopro.db --interval 60
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

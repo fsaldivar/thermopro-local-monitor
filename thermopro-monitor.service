@@ -1,0 +1,19 @@
+# Instalar en /etc/systemd/system/thermopro-monitor.service
+[Unit]
+# Sin limite de reintentos: que insista indefinidamente.
+StartLimitIntervalSec=0
+Description=ThermoPro BLE monitor
+After=bluetooth.target network-online.target
+Wants=bluetooth.target
+
+[Service]
+Type=simple
+User=fermax
+WorkingDirectory=/home/fermax/thermopro-ble-monitor
+EnvironmentFile=/home/fermax/thermopro-ble-monitor/.env
+ExecStart=/home/fermax/thermopro-ble-monitor/.venv/bin/python thermopro_monitor.py mqtt
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
