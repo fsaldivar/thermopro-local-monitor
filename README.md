@@ -81,6 +81,17 @@ sudo sed -i 's/^#AutoEnable=true/AutoEnable=true/' /etc/bluetooth/main.conf
 sudo systemctl restart bluetooth
 ```
 
+En un nodo sin monitor conviene dejarlo en consola: el panel LCD va por SPI
+directo y no usa Wayland para nada. Libera unos 80 MB de RAM, que en un Pi 3
+con 905 MB se notan.
+
+```bash
+sudo systemctl set-default multi-user.target
+# La sesion de autologin sigue levantando servicios de escritorio inutiles:
+systemctl --user mask pipewire.service pipewire-pulse.service wireplumber.service \
+    gvfs-daemon.service xdg-desktop-portal.service
+```
+
 ## Uso
 
 ```bash

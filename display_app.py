@@ -147,6 +147,22 @@ class Datos:
 # --------------------------------------------------------------------------- #
 
 
+def ajustar(d, valor: str, sufijo: str, max_ancho: int,
+            size_max: int = 84, size_min: int = 44):
+    """Busca el mayor tamano con el que `valor + sufijo` cabe a lo ancho.
+
+    Sin esto, un valor de mas digitos (o bajo cero) se sale del panel y el
+    sufijo aparece cortado por la mitad.
+    """
+    for size in range(size_max, size_min - 1, -2):
+        f_num = font(size, bold=True)
+        f_suf = font(max(18, int(size * 0.42)), bold=True)
+        ancho = d.textlength(valor, font=f_num) + 6 + d.textlength(sufijo, font=f_suf)
+        if ancho <= max_ancho:
+            return f_num, f_suf
+    return font(size_min, bold=True), font(18, bold=True)
+
+
 def marco(titulo: str) -> tuple[Image.Image, ImageDraw.ImageDraw]:
     img = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(img)
@@ -171,10 +187,15 @@ def vista_ahora(datos: Datos) -> Image.Image:
     edad = time.time() - ultima["ts"]
     color = temp_color(ultima["temperatura"]) if edad < 600 else MUTED
 
-    texto = f"{ultima['temperatura']:.1f}"
-    d.text((10, 44), texto, font=font(84, bold=True), fill=color)
-    ancho = d.textlength(texto, font=font(84, bold=True))
-    d.text((10 + ancho + 6, 56), "C", font=font(34, bold=True), fill=color)
+    margen = 12
+    valor = f"{ultima['temperatura']:.1f}"
+    f_num, f_suf = ajustar(d, valor, "\u00b0C", W - margen * 2)
+    # Alineados por la linea base: asi el sufijo acompana al numero sea cual
+    # sea el tamano que haya tocado.
+    base = 124
+    d.text((margen, base), valor, font=f_num, fill=color, anchor="ls")
+    d.text((margen + d.textlength(valor, font=f_num) + 6, base), "\u00b0C",
+           font=f_suf, fill=color, anchor="ls")
 
     d.text((12, 146), f"{ultima['humedad']} %", font=font(40), fill=FG)
     d.text((12, 192), "humedad relativa", font=font(13), fill=MUTED)
@@ -218,7 +239,8 @@ def vista_historico(datos: Datos, horas: float, etiqueta: str) -> Image.Image:
     d.text((12, 36), f"{hi:.1f}", font=font(13), fill=MUTED)
     d.text((12, y1 + 4), f"{lo:.1f}", font=font(13), fill=MUTED)
     d.text((12, 196), f"min {min(temps):.1f}   max {max(temps):.1f}", font=font(18), fill=FG)
-    d.text((W - 12, 196), f"{len(serie)} pts", font=font(13), fill=MUTED, anchor="ra")
+    # El contador va en la cabecera: abajo chocaba con la linea de min/max.
+    d.text((W - 12, 8), f"{len(serie)} pts", font=font(13), fill=MUTED, anchor="ra")
     return img
 
 
