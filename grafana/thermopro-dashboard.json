@@ -97,7 +97,7 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
+        "w": 5,
         "x": 6,
         "y": 0
       },
@@ -159,8 +159,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 12,
+        "w": 4,
+        "x": 11,
         "y": 0
       },
       "targets": [
@@ -221,8 +221,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 18,
+        "w": 4,
+        "x": 15,
         "y": 0
       },
       "targets": [
@@ -267,6 +267,97 @@
               {
                 "color": "text",
                 "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Batería",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "thermopro-sqlite"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 19,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "thermopro-sqlite"
+          },
+          "queryText": "SELECT battery FROM readings WHERE battery IS NOT NULL ORDER BY ts DESC LIMIT 1",
+          "rawQueryText": "SELECT battery FROM readings WHERE battery IS NOT NULL ORDER BY ts DESC LIMIT 1",
+          "timeColumns": [
+            "time"
+          ],
+          "queryType": "table",
+          "format": "table"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "graphMode": "none",
+        "colorMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "Crítica",
+                  "color": "red",
+                  "index": 0
+                },
+                "50": {
+                  "text": "Media",
+                  "color": "orange",
+                  "index": 1
+                },
+                "100": {
+                  "text": "Llena",
+                  "color": "green",
+                  "index": 2
+                }
+              }
+            }
+          ],
+          "noValue": "sin dato",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 50
+              },
+              {
+                "color": "green",
+                "value": 100
               }
             ]
           }

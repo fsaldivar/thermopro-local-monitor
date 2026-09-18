@@ -228,7 +228,13 @@ sudo systemctl enable --now grafana-server
 zram, Grafana sin tope llega a dejar la máquina sin poder hacer `fork`: responde
 a ping y acepta TCP, pero mata cada sesión SSH nueva al instante. Ver más abajo.
 
-El dashboard queda en `http://<ip>:3000/d/thermopro`.
+El dashboard queda en `http://<ip>:3000/d/thermopro`: cinco indicadores
+—temperatura, humedad, mínima y máxima del rango, y batería— y tres series con
+temperatura, humedad y señal.
+
+La batería se muestra como **texto y color** (Crítica / Media / Llena) mediante
+un *value mapping*, no como número: el sensor solo reporta tres estados, y
+enseñar «50» daría a entender un porcentaje que no existe.
 
 Dos trampas del plugin, las dos cuestan un rato:
 
