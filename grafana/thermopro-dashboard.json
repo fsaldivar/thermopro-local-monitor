@@ -1,0 +1,457 @@
+{
+  "uid": "thermopro",
+  "title": "ThermoPro — sensor local",
+  "tags": [
+    "thermopro",
+    "local"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "schemaVersion": 39,
+  "refresh": "1m",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Temperatura",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "thermopro-sqlite"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "thermopro-sqlite"
+          },
+          "queryText": "SELECT temperature_c FROM readings ORDER BY ts DESC LIMIT 1",
+          "rawQueryText": "SELECT temperature_c FROM readings ORDER BY ts DESC LIMIT 1",
+          "timeColumns": [
+            "time"
+          ],
+          "queryType": "table",
+          "format": "table"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "graphMode": "none",
+        "colorMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 10
+              },
+              {
+                "color": "orange",
+                "value": 26
+              },
+              {
+                "color": "red",
+                "value": 32
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Humedad",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "thermopro-sqlite"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "thermopro-sqlite"
+          },
+          "queryText": "SELECT humidity FROM readings ORDER BY ts DESC LIMIT 1",
+          "rawQueryText": "SELECT humidity FROM readings ORDER BY ts DESC LIMIT 1",
+          "timeColumns": [
+            "time"
+          ],
+          "queryType": "table",
+          "format": "table"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "graphMode": "none",
+        "colorMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "humidity",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Mínima del rango",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "thermopro-sqlite"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "thermopro-sqlite"
+          },
+          "queryText": "SELECT min(temperature_c) AS v FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to",
+          "rawQueryText": "SELECT min(temperature_c) AS v FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to",
+          "timeColumns": [
+            "time"
+          ],
+          "queryType": "table",
+          "format": "table"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "graphMode": "none",
+        "colorMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Máxima del rango",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "thermopro-sqlite"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "thermopro-sqlite"
+          },
+          "queryText": "SELECT max(temperature_c) AS v FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to",
+          "rawQueryText": "SELECT max(temperature_c) AS v FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to",
+          "timeColumns": [
+            "time"
+          ],
+          "queryType": "table",
+          "format": "table"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "graphMode": "none",
+        "colorMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Temperatura",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "thermopro-sqlite"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "thermopro-sqlite"
+          },
+          "queryText": "SELECT ts*1000 AS time, temperature_c AS \"°C\" FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts",
+          "rawQueryText": "SELECT ts*1000 AS time, temperature_c AS \"°C\" FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts",
+          "timeColumns": [
+            "time"
+          ],
+          "queryType": "table",
+          "format": "time_series"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "smooth",
+            "gradientMode": "opacity"
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Humedad relativa",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "thermopro-sqlite"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 13
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "thermopro-sqlite"
+          },
+          "queryText": "SELECT ts*1000 AS time, humidity AS \"%\" FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts",
+          "rawQueryText": "SELECT ts*1000 AS time, humidity AS \"%\" FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts",
+          "timeColumns": [
+            "time"
+          ],
+          "queryType": "table",
+          "format": "time_series"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "humidity",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "smooth",
+            "gradientMode": "opacity"
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Señal del sensor",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "thermopro-sqlite"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 13
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "thermopro-sqlite"
+          },
+          "queryText": "SELECT ts*1000 AS time, rssi AS \"dBm\" FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts",
+          "rawQueryText": "SELECT ts*1000 AS time, rssi AS \"dBm\" FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts",
+          "timeColumns": [
+            "time"
+          ],
+          "queryType": "table",
+          "format": "time_series"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dBm",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "smooth",
+            "gradientMode": "opacity"
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          }
+        },
+        "overrides": []
+      }
+    }
+  ]
+}

@@ -102,10 +102,10 @@ systemctl --user mask pipewire.service pipewire-pulse.service wireplumber.servic
 .venv/bin/python thermopro_monitor.py watch --address FB:E7:C4:CF:3A:F6
 
 # Guardar en la base local
-.venv/bin/python thermopro_monitor.py record --db thermopro.db
+.venv/bin/python thermopro_monitor.py record --db /var/lib/thermopro/thermopro.db
 
 # Panel en la pantalla del HAT
-python3 display_app.py --db thermopro.db
+python3 display_app.py --db /var/lib/thermopro/thermopro.db
 ```
 
 Sin `--address` se autodetecta cualquier dispositivo cuyo nombre empiece por
@@ -125,8 +125,8 @@ readings (ts, device_id, temperature_c, humidity, rssi)   -- ts en epoch UTC
 Más una vista `readings_local` con la hora ya en local y legible:
 
 ```bash
-sqlite3 thermopro.db "SELECT * FROM readings_local LIMIT 10"
-sqlite3 -csv thermopro.db "SELECT * FROM readings_local" > export.csv
+sqlite3 /var/lib/thermopro/thermopro.db "SELECT * FROM readings_local LIMIT 10"
+sqlite3 -csv /var/lib/thermopro/thermopro.db "SELECT * FROM readings_local" > export.csv
 ```
 
 Está en modo **WAL**, para que el panel y cualquier consulta lean mientras el
@@ -170,6 +170,50 @@ Dos detalles del ST7789 que cuestan una tarde si no se saben:
   imagen sale corrida. Está en la tabla `ROTATIONS` del driver.
 
 `--rotation 270` deja la imagen derecha con los botones a la izquierda.
+
+## Grafana (opcional)
+
+El grabador escribe en `/var/lib/thermopro/thermopro.db`, fuera del home, para
+que Grafana pueda leerla. Dos detalles que hay que resolver o no funciona:
+
+- El home de un usuario suele ser `700`, asi que el usuario `grafana` no puede
+  ni atravesarlo. Por eso la base vive en `/var/lib/thermopro`.
+- **SQLite en modo WAL no admite lectores de solo lectura**: necesitan poder
+  escribir los archivos `-shm` y `-wal`. De ahi el grupo compartido.
+
+```bash
+sudo groupadd -f thermopro
+sudo usermod -aG thermopro fermax
+sudo usermod -aG thermopro grafana
+sudo install -d -o fermax -g thermopro -m 2775 /var/lib/thermopro
+```
+
+Instalacion del plugin de SQLite y provisionado:
+
+```bash
+sudo grafana cli --homepath=/usr/share/grafana plugins install frser-sqlite-datasource
+sudo cp grafana/datasource.yaml  /etc/grafana/provisioning/datasources/thermopro.yaml
+sudo cp grafana/dashboards.yaml  /etc/grafana/provisioning/dashboards/thermopro.yaml
+sudo install -d -o grafana -g grafana /var/lib/grafana/dashboards
+sudo install -o grafana -g grafana grafana/thermopro-dashboard.json /var/lib/grafana/dashboards/
+sudo systemctl enable --now grafana-server
+```
+
+El dashboard queda en `http://<ip>:3000/d/thermopro`.
+
+El plugin **no entiende** los macros habituales (`$__timeFrom()`,
+`$__timeFilter()`, `$__unixEpochFilter()`): todos fallan con *missing named
+argument*. Hay que usar las variables globales de Grafana, en milisegundos:
+
+```sql
+SELECT ts*1000 AS time, temperature_c FROM readings
+WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts
+```
+
+**Coste real en un Pi 3**: unos 480 MB (365 MB el nucleo mas ~115 MB de
+procesos de plugins que arranca aunque no se usen). Cabe si el escritorio esta
+apagado, pero deja la maquina justa. Para un solo sensor, consultar la base con
+`sqlite3` o el panel de la LCD sale mucho mas barato.
 
 ## Servicios
 

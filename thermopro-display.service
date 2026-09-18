@@ -12,7 +12,7 @@ Type=simple
 User=fermax
 WorkingDirectory=/home/fermax/thermopro-ble-monitor
 # python3 del sistema: trae PIL, numpy, spidev y gpiozero ya empaquetados.
-ExecStart=/usr/bin/python3 display_app.py --db /home/fermax/thermopro-ble-monitor/thermopro.db --rotation 270
+ExecStart=/usr/bin/python3 display_app.py --db /var/lib/thermopro/thermopro.db --rotation 270
 Restart=always
 RestartSec=10
 

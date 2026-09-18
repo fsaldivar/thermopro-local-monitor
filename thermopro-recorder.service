@@ -11,7 +11,7 @@ Wants=bluetooth.target
 Type=simple
 User=fermax
 WorkingDirectory=/home/fermax/thermopro-ble-monitor
-ExecStart=/home/fermax/thermopro-ble-monitor/.venv/bin/python thermopro_monitor.py record --db /home/fermax/thermopro-ble-monitor/thermopro.db --interval 60
+ExecStart=/home/fermax/thermopro-ble-monitor/.venv/bin/python thermopro_monitor.py record --db /var/lib/thermopro/thermopro.db --interval 60
 Restart=always
 RestartSec=10
 
