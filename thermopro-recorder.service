@@ -10,8 +10,8 @@ Wants=bluetooth.target
 [Service]
 Type=simple
 User=fermax
-WorkingDirectory=/home/fermax/thermopro-ble-monitor
-ExecStart=/home/fermax/thermopro-ble-monitor/.venv/bin/python thermopro_monitor.py record --db /var/lib/thermopro/thermopro.db --interval 60
+WorkingDirectory=/home/fermax/thermopro-local-monitor
+ExecStart=/home/fermax/thermopro-local-monitor/.venv/bin/python thermopro_monitor.py record --db /var/lib/thermopro/thermopro.db --interval 60
 Restart=always
 RestartSec=10
 

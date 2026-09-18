@@ -63,8 +63,8 @@ nada impide que sean 31,3 y 39,0.
 ## Instalación
 
 ```bash
-git clone https://github.com/fsaldivar/thermopro-ble-monitor.git
-cd thermopro-ble-monitor
+git clone https://github.com/fsaldivar/thermopro-local-monitor.git
+cd thermopro-local-monitor
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
@@ -234,7 +234,7 @@ sudo systemctl enable --now thermopro-recorder thermopro-display
 journalctl -u thermopro-recorder -f
 ```
 
-Ajusta `User=` y las rutas si no lo tienes en `/home/fermax/thermopro-ble-monitor`.
+Ajusta `User=` y las rutas si no lo tienes en `/home/fermax/thermopro-local-monitor`.
 
 ## Robustez
 

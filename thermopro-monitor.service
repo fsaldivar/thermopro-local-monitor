@@ -9,9 +9,9 @@ Wants=bluetooth.target
 [Service]
 Type=simple
 User=fermax
-WorkingDirectory=/home/fermax/thermopro-ble-monitor
-EnvironmentFile=/home/fermax/thermopro-ble-monitor/.env
-ExecStart=/home/fermax/thermopro-ble-monitor/.venv/bin/python thermopro_monitor.py mqtt
+WorkingDirectory=/home/fermax/thermopro-local-monitor
+EnvironmentFile=/home/fermax/thermopro-local-monitor/.env
+ExecStart=/home/fermax/thermopro-local-monitor/.venv/bin/python thermopro_monitor.py mqtt
 Restart=always
 RestartSec=10
 
