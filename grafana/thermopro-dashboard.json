@@ -294,8 +294,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "thermopro-sqlite"
           },
-          "queryText": "SELECT ts*1000 AS time, temperature_c AS \"°C\" FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts",
-          "rawQueryText": "SELECT ts*1000 AS time, temperature_c AS \"°C\" FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts",
+          "queryText": "SELECT ts AS time, temperature_c AS \"°C\" FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts",
+          "rawQueryText": "SELECT ts AS time, temperature_c AS \"°C\" FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts",
           "timeColumns": [
             "time"
           ],
@@ -353,8 +353,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "thermopro-sqlite"
           },
-          "queryText": "SELECT ts*1000 AS time, humidity AS \"%\" FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts",
-          "rawQueryText": "SELECT ts*1000 AS time, humidity AS \"%\" FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts",
+          "queryText": "SELECT ts AS time, humidity AS \"%\" FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts",
+          "rawQueryText": "SELECT ts AS time, humidity AS \"%\" FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts",
           "timeColumns": [
             "time"
           ],
@@ -414,8 +414,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "thermopro-sqlite"
           },
-          "queryText": "SELECT ts*1000 AS time, rssi AS \"dBm\" FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts",
-          "rawQueryText": "SELECT ts*1000 AS time, rssi AS \"dBm\" FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts",
+          "queryText": "SELECT ts AS time, rssi AS \"dBm\" FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts",
+          "rawQueryText": "SELECT ts AS time, rssi AS \"dBm\" FROM readings WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts",
           "timeColumns": [
             "time"
           ],

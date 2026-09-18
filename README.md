@@ -201,12 +201,22 @@ sudo systemctl enable --now grafana-server
 
 El dashboard queda en `http://<ip>:3000/d/thermopro`.
 
-El plugin **no entiende** los macros habituales (`$__timeFrom()`,
-`$__timeFilter()`, `$__unixEpochFilter()`): todos fallan con *missing named
-argument*. Hay que usar las variables globales de Grafana, en milisegundos:
+Dos trampas del plugin, las dos cuestan un rato:
+
+**1. No entiende los macros habituales.** `$__timeFrom()`, `$__timeFilter()` y
+`$__unixEpochFilter()` fallan con *missing named argument*. Hay que usar las
+variables globales de Grafana, `$__from` y `$__to`, que vienen en
+**milisegundos**.
+
+**2. La columna de tiempo va en segundos**, porque el plugin la convierte a
+milisegundos por su cuenta. Si le pasas `ts*1000` la multiplica otra vez y las
+marcas se van al ano 13500: el panel dice *"Data outside time range"*.
+
+De ahi que la consulta sea asimetrica —`ts` en el SELECT, `ts*1000` en el
+WHERE— que parece un error y no lo es:
 
 ```sql
-SELECT ts*1000 AS time, temperature_c FROM readings
+SELECT ts AS time, temperature_c FROM readings
 WHERE ts*1000 >= $__from AND ts*1000 <= $__to ORDER BY ts
 ```
 
