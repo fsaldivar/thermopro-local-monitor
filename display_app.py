@@ -21,6 +21,7 @@ import os
 import signal
 import socket
 import sqlite3
+import threading
 import time
 from datetime import datetime
 
@@ -316,19 +317,26 @@ class App:
         self.rango = 2                       # indice en RANGOS: 24 h
         self.luz = True
         self.parar = False
-        self._sucio = True
+        # Los botones llegan en el hilo de gpiozero: esto despierta al bucle
+        # de dibujo, que si no tardaba hasta un refresco entero en responder.
+        self._despertar = threading.Event()
 
     def siguiente_vista(self, paso: int = 1) -> None:
         self.vista = (self.vista + paso) % 3
-        self._sucio = True
+        self._despertar.set()
 
     def alternar_luz(self) -> None:
         self.luz = not self.luz
         self.lcd.backlight(self.luz)
+        self._despertar.set()
 
     def siguiente_rango(self) -> None:
         self.rango = (self.rango + 1) % len(RANGOS)
-        self._sucio = True
+        self._despertar.set()
+
+    def detener(self, *_) -> None:
+        self.parar = True
+        self._despertar.set()
 
     def conectar_botones(self) -> None:
         try:
@@ -362,13 +370,16 @@ class App:
     def run(self, refresco: float) -> None:
         while not self.parar:
             inicio = time.monotonic()
+            # Limpiar antes de dibujar: una pulsacion mientras se dibuja el
+            # fotograma anterior no se pierde, redibuja al terminar.
+            self._despertar.clear()
             try:
                 if self.luz:
                     self.lcd.show(self.render())
             except Exception:
                 log.exception("fallo dibujando la vista %d", self.vista)
             espera = max(0.05, refresco - (time.monotonic() - inicio))
-            time.sleep(espera)
+            self._despertar.wait(espera)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -399,11 +410,8 @@ def main(argv: list[str] | None = None) -> int:
     app = App(lcd, Datos(args.db))
     app.conectar_botones()
 
-    def parar(*_):
-        app.parar = True
-
-    signal.signal(signal.SIGINT, parar)
-    signal.signal(signal.SIGTERM, parar)
+    signal.signal(signal.SIGINT, app.detener)
+    signal.signal(signal.SIGTERM, app.detener)
 
     log.info("panel arrancado (rotacion %d)", args.rotation)
     try:
