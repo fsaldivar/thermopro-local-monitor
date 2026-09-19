@@ -6,7 +6,7 @@ las guarda en SQLite y las muestra en la pantalla LCD del propio Raspberry Pi.
 **Todo ocurre en la Raspberry.** No hay nube, no hay broker externo, no sale
 ni un byte a internet.
 
-![Las tres vistas del panel](docs/vistas.png)
+![Las cinco vistas del panel](docs/vistas.png)
 
 Verificado sobre hardware real: **TP359S** (`FB:E7:C4:CF:3A:F6`) + Raspberry Pi
 3 Model B + **Waveshare 1.3inch LCD HAT** (ST7789 240×240), con BlueZ 5.82,
@@ -165,17 +165,28 @@ inventárselo.
 | Joystick | arriba=6, abajo=19, izquierda=5, derecha=26, pulsar=13 |
 | Volcado de pantalla completa | ~70 ms |
 
-Tres vistas, se cambia con **KEY1** o el joystick izquierda/derecha:
+Cinco vistas, se cambia con **KEY1** o el joystick izquierda/derecha:
 
-| <img src="docs/vista-ahora.png" width="230"> | <img src="docs/vista-historico.png" width="230"> | <img src="docs/vista-sistema.png" width="230"> |
+| <img src="docs/vista-ahora.png" width="150"> | <img src="docs/vista-humedad.png" width="150"> | <img src="docs/vista-tendencia.png" width="150"> |
 | :--: | :--: | :--: |
-| **Ahora** | **Histórico** | **Sistema** |
-| Medidor circular, humedad y **antigüedad del dato** | Serie con mínima, media y máxima | IP, CPU, uptime y lecturas |
+| **Ahora** | **Humedad** | **Tendencia** |
+| Medidor circular, humedad y **antigüedad del dato** | Confort y **punto de rocío** | Cambio en 1 h y 24 h, extremos del día |
+| <img src="docs/vista-historico.png" width="150"> | <img src="docs/vista-sistema.png" width="150"> | |
+| **Histórico** | **Sistema** | |
+| Serie con mínima, media y máxima | IP, CPU, uptime y lecturas | |
 
 1. **Ahora** — si pasan más de 10 minutos sin lectura, el arco se apaga a gris
    y la antigüedad se pone en rojo: un valor congelado no debe parecer actual.
-2. **Histórico** — **KEY3** cambia el rango (3 h / 12 h / 24 h / 3 días).
-3. **Sistema** — útil para averiguar la IP cuando la Raspberry cambia de red.
+2. **Humedad** — el mismo medidor sobre 0–100 %, con el **punto de rocío**
+   (Magnus-Tetens) calculado con la temperatura de esa misma lectura. Los
+   colores son tramos de confort, no un degradado: verde entre 30 y 60 %, y
+   **rojo pasado el 70 %**, que es donde ya condensa en los puentes térmicos.
+3. **Tendencia** — cuánto ha cambiado en 1 h y en 24 h, y la mínima y la
+   máxima del día con su hora. La lectura de referencia se busca con una
+   tolerancia de ±15 min: si no hay ninguna cerca de esa hora pone `s/d` en
+   vez de restar contra el borde de un hueco e inventarse un cambio.
+4. **Histórico** — **KEY3** cambia el rango (3 h / 12 h / 24 h / 3 días).
+5. **Sistema** — útil para averiguar la IP cuando la Raspberry cambia de red.
 
 El estilo vive en `ui.py`: todo se dibuja a **3× y se reduce con LANCZOS**,
 porque PIL no suaviza bordes y sin eso los arcos salen dentados. Cuesta 116 ms
@@ -183,7 +194,16 @@ por fotograma en un Pi 3, frente a los 2 s de refresco. Los iconos son glifos
 de **Font Awesome** y la tipografía es **Inter**, ambos desde paquetes de apt:
 ni una descarga.
 
-**KEY2** apaga y enciende la retroiluminación.
+| Control | Acción |
+| --- | --- |
+| **KEY1**, joystick izquierda/derecha | vista anterior / siguiente |
+| **KEY2** | apaga y enciende la retroiluminación |
+| **KEY3** | rango del histórico |
+| **Pulsar el joystick** | vuelve a la vista **Ahora** |
+
+Las pulsaciones llegan en el hilo de `gpiozero` y **despiertan el bucle de
+dibujo** con un `threading.Event`, en vez de esperar al siguiente refresco: sin
+eso el panel tardaba hasta 2 s en reaccionar a un botón.
 
 Dos detalles del ST7789 que cuestan una tarde si no se saben:
 

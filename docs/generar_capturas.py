@@ -24,6 +24,7 @@ import ui
 ESCALA = 2                      # el panel real es de 240x240
 MARGEN = 26
 SEPARACION = 34
+COLUMNAS = 3                    # con cinco vistas, una sola fila sale ilegible
 FONDO = (22, 24, 30)
 
 
@@ -80,24 +81,34 @@ def main() -> int:
         datos = app.Datos(datos_de_ejemplo(os.path.join(tmp, "muestra.db")))
         vistas = [
             ("ahora", app.vista_ahora(datos)),
+            ("humedad", app.vista_humedad(datos)),
+            ("tendencia", app.vista_tendencia(datos)),
             ("historico", app.vista_historico(datos, 24, "24 H")),
             ("sistema", app.vista_sistema(datos)),
         ]
 
     marcos = [con_marco(v) for _, v in vistas]
-    ancho = MARGEN * 2 + sum(m.width for m in marcos) + SEPARACION * (len(marcos) - 1)
-    alto = MARGEN * 2 + marcos[0].height
+    lado = marcos[0].width
+    filas = [marcos[i:i + COLUMNAS] for i in range(0, len(marcos), COLUMNAS)]
+    ancho = MARGEN * 2 + lado * COLUMNAS + SEPARACION * (COLUMNAS - 1)
+    alto = MARGEN * 2 + lado * len(filas) + SEPARACION * (len(filas) - 1)
     hoja = Image.new("RGB", (ancho, alto), FONDO)
-    x = MARGEN
-    for m in marcos:
-        hoja.paste(m, (x, MARGEN))
-        x += m.width + SEPARACION
+    y = MARGEN
+    for fila in filas:
+        # La ultima fila puede ir incompleta: centrarla en vez de dejar el
+        # hueco a la derecha.
+        usado = lado * len(fila) + SEPARACION * (len(fila) - 1)
+        x = (ancho - usado) // 2
+        for m in fila:
+            hoja.paste(m, (x, y))
+            x += lado + SEPARACION
+        y += lado + SEPARACION
     hoja.save(os.path.join(salida, "vistas.png"))
 
     for (nombre, _), marco in zip(vistas, marcos):
         marco.save(os.path.join(salida, f"vista-{nombre}.png"))
 
-    print(f"generadas en {salida}: vistas.png y tres capturas sueltas")
+    print(f"generadas en {salida}: vistas.png y una captura por vista")
     return 0
 
 
