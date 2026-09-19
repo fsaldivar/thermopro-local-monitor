@@ -34,6 +34,7 @@ ICO = {
     "senal": "", "grafica": "", "engranaje": "", "aviso": "",
     "chip": "", "arriba": "", "abajo": "",
     "bat_llena": "", "bat_media": "", "bat_vacia": "",
+    "igual": "",
 }
 
 _cache: dict[tuple, ImageFont.FreeTypeFont] = {}
@@ -67,7 +68,7 @@ def precargar() -> None:
     La primera vez cuesta cerca de un segundo; hacerlo al arrancar evita que
     el primer fotograma salga con retraso.
     """
-    for size in (10, 11, 12, 13, 14, 17, 19, 22, 26, 62, 76):
+    for size in (10, 11, 12, 13, 14, 15, 16, 17, 19, 22, 26, 62, 76):
         fuente("Medium", size)
         fuente("SemiBold", size)
         fuente("Bold", size, display=True)
@@ -86,6 +87,21 @@ def color_temp(c: float) -> tuple[int, int, int]:
         return (236, 186, 76)
     if c < 34:
         return (240, 146, 62)
+    return (232, 92, 84)
+
+
+def color_humedad(h: float) -> tuple[int, int, int]:
+    """Tramos de confort, no un degradado: la franja 30-60 % es la buena.
+
+    Rojo arriba del 70 % porque ahi ya condensa en los puentes termicos, que
+    es un aviso, no un valor mas alto de lo mismo.
+    """
+    if h < 30:
+        return (236, 186, 76)
+    if h < 60:
+        return (110, 200, 120)
+    if h < 70:
+        return (88, 160, 235)
     return (232, 92, 84)
 
 
@@ -145,6 +161,25 @@ def barra_superior(l:Lienzo, izq_icono: str, izq_texto: str,
         l.texto((W - 13, 15), der_texto, fuente("Medium", 12), der_color, anchor="rm")
         if der_icono:
             l.texto((W - 17 - ancho, 15), ICO[der_icono], icono(11), der_color, anchor="rm")
+
+
+def medidor(l: Lienzo, cx: float, cy: float, r: float, grosor: float,
+            frac: float, color) -> None:
+    """Arco de 270 grados con marcador, abierto por abajo.
+
+    Lo comparten las vistas de golpe de vista; el hueco inferior deja sitio
+    para los extremos de la escala y la antiguedad del dato.
+    """
+    ini, barrido = 135, 270
+    l.arco(cx, cy, r, ini, ini + barrido, PISTA, grosor)
+    frac = max(0.0, min(1.0, frac))
+    if frac <= 0:
+        return
+    l.arco(cx, cy, r, ini, ini + barrido * frac, color, grosor)
+    ang = math.radians(ini + barrido * frac)
+    mx, my = cx + r * math.cos(ang), cy + r * math.sin(ang)
+    l.circulo(mx, my, 9, CLARO)
+    l.circulo(mx, my, 4.5, color)
 
 
 def escala_serie(valores, x0, y0, x1, y1, minimo_span=0.5):

@@ -6,8 +6,10 @@ solo lectura: si este proceso se cae, el registro sigue intacto.
 
 Vistas (KEY1 o joystick izquierda/derecha para cambiar):
     1. Ahora      temperatura grande, humedad y antiguedad del dato
-    2. Historico  grafica de las ultimas horas con minima y maxima
-    3. Sistema    IP, temperatura de CPU, uptime y estado del registro
+    2. Humedad    medidor de humedad con el punto de rocio
+    3. Tendencia  cuanto ha cambiado en 1 h y en 24 h, y extremos del dia
+    4. Historico  grafica de las ultimas horas con minima y maxima
+    5. Sistema    IP, temperatura de CPU, uptime y estado del registro
 
 KEY2 apaga y enciende la retroiluminacion. KEY3 cambia el rango del historico.
 """
@@ -39,6 +41,9 @@ KEY1, KEY2, KEY3 = 21, 20, 16
 JOY_LEFT, JOY_RIGHT = 5, 26
 
 RANGOS = ((3, "3 H"), (12, "12 H"), (24, "24 H"), (72, "3 DIAS"))
+
+# Orden del carrusel. El historico se dibuja aparte porque necesita el rango.
+VISTAS = ("ahora", "humedad", "tendencia", "historico", "sistema")
 
 # Escala del medidor circular. Fija a proposito: una escala que se reajusta
 # sola hace que un cambio de un grado parezca enorme.
@@ -115,6 +120,46 @@ class Datos:
         except sqlite3.Error:
             return []
 
+    def cerca(self, objetivo: int, tolerancia: int = 900) -> dict | None:
+        """Lectura mas proxima a un instante, o None si no hay ninguna cerca.
+
+        Sin la tolerancia, un hueco de horas devolveria el borde del hueco y
+        la comparacion diria que "no ha cambiado nada" cuando lo que pasa es
+        que no habia datos.
+        """
+        if not self.connect():
+            return None
+        try:
+            row = self._db.execute(
+                """
+                SELECT ts, temperature_c, humidity FROM readings
+                WHERE ts BETWEEN ? AND ?
+                ORDER BY abs(ts - ?) LIMIT 1
+                """,
+                (objetivo - tolerancia, objetivo + tolerancia, objetivo),
+            ).fetchone()
+        except sqlite3.Error:
+            return None
+        if row is None:
+            return None
+        return {"ts": row[0], "temperatura": row[1], "humedad": row[2]}
+
+    def extremos(self, desde: int) -> tuple[dict, dict] | None:
+        """Lectura mas fria y mas caliente desde un instante dado."""
+        if not self.connect():
+            return None
+        sql = ("SELECT ts, temperature_c FROM readings WHERE ts >= ? "
+               "ORDER BY temperature_c %s, ts LIMIT 1")
+        try:
+            frio = self._db.execute(sql % "ASC", (desde,)).fetchone()
+            calor = self._db.execute(sql % "DESC", (desde,)).fetchone()
+        except sqlite3.Error:
+            return None
+        if frio is None or calor is None:
+            return None
+        return ({"ts": frio[0], "temperatura": frio[1]},
+                {"ts": calor[0], "temperatura": calor[1]})
+
     def filas(self) -> int:
         if not self.connect():
             return 0
@@ -132,6 +177,38 @@ class Datos:
 # --------------------------------------------------------------------------- #
 # Vistas
 # --------------------------------------------------------------------------- #
+
+
+def punto_rocio(temp_c: float, humedad: float) -> float | None:
+    """Magnus-Tetens: temperatura a la que ese aire empieza a condensar.
+
+    Es el dato que avisa de condensacion en cristales y muros frios, cosa que
+    el porcentaje de humedad por si solo no dice.
+    """
+    if humedad <= 0:
+        return None
+    a, b = 17.62, 243.12
+    gamma = math.log(humedad / 100) + a * temp_c / (b + temp_c)
+    return b * gamma / (a - gamma)
+
+
+def confort(humedad: float) -> str:
+    if humedad < 30:
+        return "AIRE SECO"
+    if humedad < 60:
+        return "CONFORTABLE"
+    if humedad < 70:
+        return "HUMEDO"
+    return "RIESGO DE MOHO"
+
+
+def flecha(delta: float):
+    """Glifo y color del cambio. Debajo de 0,1 el sensor no resuelve mas."""
+    if delta >= 0.1:
+        return ICO["arriba"], ROJO
+    if delta <= -0.1:
+        return ICO["abajo"], AZUL
+    return ICO["igual"], TENUE
 
 
 def icono_bateria(nivel: int | None):
@@ -177,18 +254,8 @@ def vista_ahora(datos) -> Image.Image:
     # El centro va desplazado hacia abajo y el radio reducido: a media escala
     # el marcador queda en lo alto del arco y se comia la cabecera.
     cx, cy = W / 2, W / 2 + 6
-    r, grosor = 86, 13
-    ini, barrido = 135, 270
-    l.arco(cx, cy, r, ini, ini + barrido, PISTA, grosor)
-
     frac = (ultima["temperatura"] - ESCALA_MIN) / (ESCALA_MAX - ESCALA_MIN)
-    frac = max(0.0, min(1.0, frac))
-    if frac > 0:
-        l.arco(cx, cy, r, ini, ini + barrido * frac, col, grosor)
-        ang = math.radians(ini + barrido * frac)
-        mx, my = cx + r * math.cos(ang), cy + r * math.sin(ang)
-        l.circulo(mx, my, 9, CLARO)
-        l.circulo(mx, my, 4.5, col)
+    ui.medidor(l, cx, cy, 86, 13, frac, col)
 
     valor = f"{ultima['temperatura']:.1f}"
     f_num = fuente("Bold", 62, display=True)
@@ -213,6 +280,110 @@ def vista_ahora(datos) -> Image.Image:
     # congelado no debe parecer actual.
     l.texto((cx, W - 13), human_age(edad), fuente("Medium", 12),
             ROJO if vieja else APAGADO, anchor="mm")
+    return l.terminar()
+
+
+def vista_humedad(datos) -> Image.Image:
+    """Humedad en el mismo medidor que la temperatura, con el punto de rocio."""
+    ultima = datos.ultima()
+    if ultima is None:
+        return vista_sin_datos(datos)
+
+    l = Lienzo()
+    edad = time.time() - ultima["ts"]
+    vieja = edad > VIEJA_S
+    hum = ultima["humedad"]
+    col = APAGADO if vieja else ui.color_humedad(hum)
+
+    barra_superior(l, "gota", "HUMEDAD", f"{ultima['temperatura']:.1f} \u00b0C",
+                   "termometro", APAGADO if vieja else TENUE)
+
+    cx, cy = W / 2, W / 2 + 6
+    ui.medidor(l, cx, cy, 86, 13, hum / 100, col)
+
+    valor = str(hum)
+    f_num = fuente("Bold", 62, display=True)
+    l.texto((cx, cy - 16), valor, f_num, CLARO, anchor="mm")
+    l.texto((cx + l.ancho(valor, f_num) / 2 + 9, cy - 30), "%",
+            fuente("SemiBold", 19), TENUE, anchor="lm")
+
+    l.texto((cx, cy + 20), confort(hum), fuente("SemiBold", 13), col, anchor="mm")
+
+    # El rocio se calcula con la temperatura de la misma lectura, no con la
+    # ultima de cada cosa por separado.
+    rocio = punto_rocio(ultima["temperatura"], hum)
+    if rocio is not None:
+        texto = f"rocio {rocio:.1f} \u00b0C"
+        f_r = fuente("Medium", 14)
+        x0 = cx - (20 + l.ancho(texto, f_r)) / 2
+        l.texto((x0, cy + 46), ICO["gota"], icono(12),
+                APAGADO if vieja else AZUL, anchor="lm")
+        l.texto((x0 + 20, cy + 46), texto, f_r, TENUE, anchor="lm")
+
+    f_pie = fuente("Medium", 11)
+    l.texto((16, W - 13), "0", f_pie, APAGADO)
+    l.texto((W - 16, W - 13), "100", f_pie, APAGADO, anchor="rm")
+    l.texto((cx, W - 13), human_age(edad), fuente("Medium", 12),
+            ROJO if vieja else APAGADO, anchor="mm")
+    return l.terminar()
+
+
+def vista_tendencia(datos) -> Image.Image:
+    """Hacia donde va y entre que extremos se ha movido hoy."""
+    ultima = datos.ultima()
+    if ultima is None:
+        return vista_sin_datos(datos)
+
+    l = Lienzo()
+    barra_superior(l, "grafica", "TENDENCIA",
+                   f"{ultima['temperatura']:.1f} \u00b0C", "termometro")
+
+    for i, (horas, etiqueta) in enumerate(((1, "1 HORA"), (24, "24 HORAS"))):
+        x0 = 12 + i * 108
+        cx = x0 + 52
+        l.rect([x0, 40, x0 + 104, 106], TARJETA, radio=10)
+        l.texto((cx, 57), etiqueta, fuente("Medium", 11), TENUE, anchor="mm")
+
+        ref = datos.cerca(ultima["ts"] - horas * 3600)
+        if ref is None:
+            # Sin lectura cerca de esa hora no hay cambio que contar: decirlo
+            # es mas honesto que restar contra el borde de un hueco.
+            l.texto((cx, 84), "s/d", fuente("SemiBold", 16), APAGADO, anchor="mm")
+            continue
+
+        delta = ultima["temperatura"] - ref["temperatura"]
+        glifo, color = flecha(delta)
+        texto = f"{abs(delta):.1f}\u00b0"
+        f_d = fuente("Bold", 26, display=True)
+        ancho = l.ancho(texto, f_d)
+        xi = cx - (ancho + 21) / 2
+        l.texto((xi, 84), glifo, icono(15), color, anchor="lm")
+        l.texto((xi + 21, 84), texto, f_d, CLARO, anchor="lm")
+
+    hoy = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    extremos = datos.extremos(int(hoy.timestamp()))
+    filas = ()
+    if extremos is not None:
+        frio, calor = extremos
+        filas = (("abajo", "MINIMA", frio, AZUL), ("arriba", "MAXIMA", calor, ROJO))
+
+    y = 137
+    for glifo, etiqueta, dato, color in filas:
+        l.rect([12, y - 21, W - 12, y + 21], TARJETA, radio=8)
+        l.texto((28, y), ICO[glifo], icono(13), color, anchor="mm")
+        l.texto((46, y), etiqueta, fuente("Medium", 13), TENUE)
+        l.texto((112, y), datetime.fromtimestamp(dato["ts"]).strftime("%H:%M"),
+                fuente("Medium", 12), APAGADO)
+        l.texto((W - 22, y), f"{dato['temperatura']:.1f} \u00b0C",
+                fuente("SemiBold", 16), CLARO, anchor="rm")
+        y += 48
+
+    if not filas:
+        l.texto((W / 2, 160), "sin lecturas de hoy",
+                fuente("Medium", 15), TENUE, anchor="mm")
+
+    l.texto((W / 2, W - 13), f"hoy desde las {hoy.strftime('%H:%M')}",
+            fuente("Medium", 11), APAGADO, anchor="mm")
     return l.terminar()
 
 
@@ -322,7 +493,7 @@ class App:
         self._despertar = threading.Event()
 
     def siguiente_vista(self, paso: int = 1) -> None:
-        self.vista = (self.vista + paso) % 3
+        self.vista = (self.vista + paso) % len(VISTAS)
         self._despertar.set()
 
     def alternar_luz(self) -> None:
@@ -360,12 +531,16 @@ class App:
                 log.warning("no se pudo usar GPIO%d: %r", pin, exc)
 
     def render(self) -> Image.Image:
-        if self.vista == 0:
-            return vista_ahora(self.datos)
-        if self.vista == 1:
+        nombre = VISTAS[self.vista]
+        if nombre == "historico":
             horas, etiqueta = RANGOS[self.rango]
             return vista_historico(self.datos, horas, etiqueta)
-        return vista_sistema(self.datos)
+        return {
+            "ahora": vista_ahora,
+            "humedad": vista_humedad,
+            "tendencia": vista_tendencia,
+            "sistema": vista_sistema,
+        }[nombre](self.datos)
 
     def run(self, refresco: float) -> None:
         while not self.parar:
@@ -377,7 +552,7 @@ class App:
                 if self.luz:
                     self.lcd.show(self.render())
             except Exception:
-                log.exception("fallo dibujando la vista %d", self.vista)
+                log.exception("fallo dibujando la vista %s", VISTAS[self.vista])
             espera = max(0.05, refresco - (time.monotonic() - inicio))
             self._despertar.wait(espera)
 
