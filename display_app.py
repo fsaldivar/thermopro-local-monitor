@@ -12,6 +12,7 @@ Vistas (KEY1 o joystick izquierda/derecha para cambiar):
     5. Sistema    IP, temperatura de CPU, uptime y estado del registro
 
 KEY2 apaga y enciende la retroiluminacion. KEY3 cambia el rango del historico.
+Pulsar el joystick vuelve a la primera vista.
 """
 
 from __future__ import annotations
@@ -38,7 +39,7 @@ log = logging.getLogger("display")
 
 # Botones del HAT
 KEY1, KEY2, KEY3 = 21, 20, 16
-JOY_LEFT, JOY_RIGHT = 5, 26
+JOY_LEFT, JOY_RIGHT, JOY_PRESS = 5, 26, 13
 
 RANGOS = ((3, "3 H"), (12, "12 H"), (24, "24 H"), (72, "3 DIAS"))
 
@@ -501,6 +502,11 @@ class App:
         self.lcd.backlight(self.luz)
         self._despertar.set()
 
+    def volver_a_inicio(self) -> None:
+        """Atajo a la primera vista: el carrusel ya es largo para ir a saltos."""
+        self.vista = 0
+        self._despertar.set()
+
     def siguiente_rango(self) -> None:
         self.rango = (self.rango + 1) % len(RANGOS)
         self._despertar.set()
@@ -522,6 +528,7 @@ class App:
             (KEY3, self.siguiente_rango),
             (JOY_LEFT, lambda: self.siguiente_vista(-1)),
             (JOY_RIGHT, lambda: self.siguiente_vista(1)),
+            (JOY_PRESS, self.volver_a_inicio),
         ):
             try:
                 boton = Button(pin, pull_up=True, bounce_time=0.12)
